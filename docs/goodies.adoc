@@ -143,6 +143,56 @@ else
 fi
 ----
 
+[#reserve-space-for-a-status-bar]
+== Reserve space for a status bar
+
+A bar that is drawn on top of all windows (link:https://github.com/FelixKratz/SketchyBar[Sketchybar] with
+`topmost=on`, for example) doesn’t shrink the screen area that AeroSpace lays windows out in. Windows still
+start at the top of the display, and the bar covers their title bars and tab strips. Reserve the strip for
+the bar with the outer top gap:
+
+.~/.aerospace.toml
+[source,toml]
+----
+# Make room for a 40pt tall bar
+gaps.outer.top = 40
+----
+
+[NOTE]
+====
+Outer gaps are added to `NSScreen.visibleFrame`, not to the screen edge, and `visibleFrame` already excludes
+that display’s macOS menu bar. The gap you need is therefore `(bar height) - (menu bar height of that
+display)`, and those two numbers are rarely equal:
+
+* If the macOS menu bar is auto-hidden and the display has no notch, `visibleFrame` is the whole screen, so
+  the gap is the bar’s full height.
+* If the display has a notch, the notch strip stays reserved even while the menu bar is auto-hidden, so only
+  the part of the bar hanging below the notch strip has to be reserved.
+* If the macOS menu bar is always visible, `visibleFrame` starts below it, so the gap is only the difference
+  between the bar height and the menu bar height.
+
+Because the menu bar height differs from display to display, one number is usually wrong on one of them. Prefer
+the per-monitor form — the monitor pattern syntax is the same as for
+xref:./guide.adoc#assign-workspaces-to-monitors[assigning workspaces to monitors]:
+
+.~/.aerospace.toml
+[source,toml]
+----
+gaps.outer.top = [
+    { monitor."<display with a notch>" = 8 },     # 40pt bar - 32pt notch strip
+    { monitor."<display without a notch>" = 40 }, # 40pt bar - no reserved strip
+    40,                                           # fallback for a display matching no pattern
+]
+----
+====
+
+CAUTION: Outer gaps apply to tiled windows and to windows put into
+xref:./commands.adoc#fullscreen[`fullscreen`], which keeps the outer gaps unless `--no-outer-gaps` is passed.
+They do *not* apply to xref:./guide.adoc#floating-windows[floating windows], which are laid out from
+`visibleFrame` and are only translated between monitors when they move. A floating window, or a window
+maximized with the macOS zoom button, therefore keeps sitting under the bar. Tile such a window (or put it
+into `fullscreen`) to make it respect the gaps.
+
 [#show-aerospace-workspaces-in-simple-bar]
 == Show AeroSpace workspaces in simple-bar
 
